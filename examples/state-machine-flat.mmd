@@ -1,0 +1,13 @@
+stateDiagram-v2
+    [*] --> Cree
+    Cree --> HorsPret : unique
+    Cree --> Disponible : non_unique
+    Disponible --> HorsPret : hors_pret
+    HorsPret --> Disponible : pret
+    Disponible --> AEnlever : abime
+    AEnlever --> [*] : supprime
+    Disponible --> Prete : emprunte
+    Prete --> Disponible : rapporte
+    Prete --> Perdu : perdu
+    Perdu --> Disponible : retrouve
+    Perdu --> [*] : supprime

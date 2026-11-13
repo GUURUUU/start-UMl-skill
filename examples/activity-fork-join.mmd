@@ -1,0 +1,16 @@
+flowchart TB
+    START((debut)) --> FORK[fork]
+    FORK --> INSC([inscrire adherent])
+    FORK --> ACQ([acquerir ouvrage])
+    INSC --> CTRL([controler depassement delai])
+    CTRL --> DEC1{delai depasse}
+    DEC1 -->|oui| REL([relancer adherent])
+    DEC1 -->|non| JOIN[join]
+    REL --> JOIN
+    ACQ --> MAJ([mettre a jour catalogue])
+    MAJ --> ENR([enregistrer emprunt retour])
+    ENR --> DEC2{controle}
+    DEC2 -->|anomalies| JOIN
+    DEC2 -->|si pas adherent| INSC
+    DEC2 -->|traite| JOIN
+    JOIN --> FIN((fin))

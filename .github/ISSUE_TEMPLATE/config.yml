@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & help
+    url: https://github.com/GUURUUU/start-UMl-skill/discussions
+    about: Setup questions, MCP plumbing, "which port is which" — go to Discussions, not Issues.
+  - name: StarUML MCP server (upstream)
+    url: https://github.com/ezrabrilliant/staruml-mcp
+    about: Bugs in the MCP server itself (transports, ports, tool wiring) belong upstream.

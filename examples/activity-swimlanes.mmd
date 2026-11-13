@@ -1,0 +1,28 @@
+flowchart TB
+    subgraph Bibliothecaire
+        START((debut))
+        ACQ([acquerir ouvrage])
+        OUVR[[ouvrage]]
+        MAJ([mettre a jour catalogue])
+        ENR([enregistrer emprunt retour])
+        DEC{controle}
+        FIN((fin))
+    end
+    subgraph Gestionnaire
+        INSC([inscrire adherent])
+        ADH[[adherent]]
+        CTRL([controler depassement delai])
+        REL([relancer adherent])
+    end
+    START --> ACQ
+    ACQ -.-> OUVR
+    ACQ --> MAJ
+    MAJ --> ENR
+    ENR --> DEC
+    DEC -->|anomalies| FIN
+    DEC -->|delai depasse| REL
+    DEC -->|si pas adherent| INSC
+    INSC -.-> ADH
+    ADH -.-> CTRL
+    CTRL -->|delai depasse| REL
+    REL --> FIN

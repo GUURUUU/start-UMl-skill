@@ -1,0 +1,30 @@
+stateDiagram-v2
+    [*] --> Montre
+    Montre --> [*]
+    state Montre {
+        state RegionAffichage {
+            [*] --> Affichage
+            Affichage --> ModificationHeure : appuiMode
+            ModificationHeure --> ModificationHeure : appuiAvance_incrHeure
+            ModificationHeure --> ModificationMinute : appuiMode
+            ModificationMinute --> ModificationMinute : appuiAvance_incrMinute
+            ModificationMinute --> ModificationHeureAlarme : appuiMode
+            ModificationHeureAlarme --> ModificationHeureAlarme : appuiAvance_incrHeureAlarme
+            ModificationHeureAlarme --> ModificationMinuteAlarme : appuiMode
+            ModificationMinuteAlarme --> ModificationMinuteAlarme : appuiAvance_incrMinuteAlarme
+            ModificationMinuteAlarme --> Affichage : appuiMode
+        }
+        state RegionAlarme {
+            [*] --> Desarmee
+            Desarmee --> Armee : appuiAlarme
+            Armee --> Desarmee : appuiAlarme
+            Armee --> Sonnerie : egalite_heures
+            Sonnerie --> Sonnerie : do_sonner
+            Sonnerie --> Desarmee : appuiAlarme
+        }
+        state RegionEclairage {
+            [*] --> Eteinte
+            Eteinte --> Eclairee : appuiEclairage
+            Eclairee --> Eteinte : relacheEclairage
+        }
+    }

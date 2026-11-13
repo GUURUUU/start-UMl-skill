@@ -1,0 +1,25 @@
+classDiagram
+    class Bibliotheque {
+        +List~Ouvrage~ catalogue
+        +List~Adherent~ adherents
+        +acquerirOuvrage(o Ouvrage)
+        +enregistrerEmprunt(a Adherent, o Ouvrage)
+        +enregistrerRetour(a Adherent, o Ouvrage)
+    }
+    class Ouvrage {
+        +String titre
+        +String isbn
+        +List~Exemplaire~ exemplaires
+    }
+    class Exemplaire {
+        +Etat etat
+        +changerEtat(e Etat)
+    }
+    class Adherent {
+        +String nom
+        +Date dateInscription
+    }
+    Bibliotheque "1" o-- "*" Ouvrage : catalogue
+    Ouvrage "1" *-- "*" Exemplaire
+    Bibliotheque "1" o-- "*" Adherent
+    Adherent "0..*" --> "0..*" Exemplaire : emprunte

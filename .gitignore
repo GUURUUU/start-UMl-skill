@@ -1,0 +1,13 @@
+# temp / OS noise
+Thumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+
+# python
+__pycache__/
+*.pyc
+
+# local experiment files
+*.mdj.orig
+/tmp/

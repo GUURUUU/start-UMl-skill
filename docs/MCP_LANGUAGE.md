@@ -2,6 +2,19 @@
 
 Standard Mermaid documentation does **not** describe what StarUML's importer accepts. This document is the observed, verified dialect (against `staruml-mcp` 0.3.x). Anything not listed here should be treated as unverified.
 
+## Tool surface (as observed)
+
+MCP hosts may prefix tool names with the server name (opencode exposes `staruml_*`). Parameters and responses:
+
+| Tool | Params | Observed response |
+| ---- | ------ | ----------------- |
+| `generate_diagram` / `staruml_generate_diagram` | `code` (string) | `Diagram is successfully generated.` |
+| `get_all_diagrams_info` / `staruml_get_all_diagrams_info` | none | `All diagrams: [{"id":"…","type":"UMLStatechartDiagram","name":"Statechart Diagram by Mermaid","description":""}, …]` — creation order |
+| `get_current_diagram_info` / `staruml_get_current_diagram_info` | none | info on the open diagram |
+| `get_diagram_image_by_id` / `staruml_get_diagram_image_by_id` | `diagramId` (string) | exported image |
+
+Observed diagram types: `UMLClassDiagram`, `UMLStatechartDiagram`, `FCFlowchartDiagram`.
+
 ## Supported diagram keywords
 
 `code` must start with exactly one of (case-sensitive):
@@ -121,3 +134,4 @@ flowchart TB
 - Auto-generated names are `"Statechart Diagram by Mermaid"` etc. — keep an ID↔version map (`get_all_diagrams_info` returns them in creation order).
 - Verify visually with `get_diagram_image_by_id` after every generation.
 - Overlapping labels in exported images are rendering artifacts; structure is truth.
+- Source PDFs: extract text with `pdfplumber` and render pages with `pymupdf` at 150 dpi (`python scripts/pdf_extract.py …`) — never print non-ASCII to a cp1252 console; write UTF-8 files and read them back.

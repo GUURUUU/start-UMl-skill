@@ -36,7 +36,7 @@ def main() -> int:
         "README.md", "SKILL.md", "LICENSE", "CHANGELOG.md", "CONTRIBUTING.md",
         "CODE_OF_CONDUCT.md", "SECURITY.md", "install.sh", "install.ps1",
         "docs/MANUAL_SETUP.md", "docs/AGENT_SETUP.md", "docs/MCP_LANGUAGE.md",
-        "docs/SHOW_HN.md", "scripts/validate.py",
+        "docs/SHOW_HN.md", "scripts/validate.py", "scripts/pdf_extract.py",
         ".github/workflows/ci.yml",
         ".github/ISSUE_TEMPLATE/bug_report.md",
         ".github/ISSUE_TEMPLATE/feature_request.md",

@@ -1,20 +1,34 @@
 ---
 name: staruml
-description: Use when creating, generating, fixing, or verifying UML diagrams in StarUML through the StarUML MCP server (generate_diagram, get_all_diagrams_info, get_diagram_image_by_id, get_current_diagram_info), when converting Mermaid to StarUML, or when a StarUML MCP call fails and the parser dialect needs debugging. Covers the exact Mermaid dialect StarUML accepts, the failure-safety protocol, and the visual verification workflow.
+description: Use when creating, generating, fixing, or verifying UML diagrams in StarUML through the StarUML MCP server (staruml_generate_diagram, staruml_get_all_diagrams_info, staruml_get_diagram_image_by_id, staruml_get_current_diagram_info), when converting Mermaid to StarUML, when extracting exercises from PDFs before diagramming, or when a StarUML MCP call fails and the parser dialect needs debugging. Covers the exact Mermaid dialect StarUML accepts, the full working toolkit (PDF text/PNG extraction, Windows encoding guards, image verification, batch ID mapping), the failure-safety protocol, and the visual verification workflow.
 ---
 
 # StarUML MCP
 
 Hard-won knowledge from driving the StarUML MCP server. StarUML accepts a **restricted Mermaid dialect** — standard Mermaid docs are NOT the source of truth. This skill is.
 
+**Version 1.1.0** — upgraded with the full toolkit used in the TP4 session (6 diagrams generated in one pass, zero retries on deliverables).
+
 ## 1. Tool contract (4 tools, nothing else)
 
-| Tool | Purpose | Notes |
-| ---- | ------- | ----- |
-| `generate_diagram` | Create a new diagram from Mermaid code | Single param `code` (string). Creates a NEW diagram every call — never overwrites |
-| `get_all_diagrams_info` | List all diagrams in open project | Returns `id`, `name`, `type`. Use to map IDs after batch generation |
-| `get_current_diagram_info` | Info on currently open diagram | |
-| `get_diagram_image_by_id` | Export diagram as image | Use for visual verification after generation |
+Tool names as exposed by MCP hosts (opencode prefixes them with the server name; bare names work in clients that don't):
+
+| Exposed name (opencode) | Bare name | Params | Purpose |
+| --- | --- | --- | --- |
+| `staruml_generate_diagram` | `generate_diagram` | `code` (string) | Create a NEW diagram from Mermaid code |
+| `staruml_get_all_diagrams_info` | `get_all_diagrams_info` | none | List all diagrams in the open project |
+| `staruml_get_current_diagram_info` | `get_current_diagram_info` | none | Info on the currently open diagram |
+| `staruml_get_diagram_image_by_id` | `get_diagram_image_by_id` | `diagramId` (string) | Export one diagram as an image |
+
+Exact observed responses:
+
+```
+staruml_generate_diagram {code: "stateDiagram-v2\n..."}      → "Diagram is successfully generated."
+staruml_get_all_diagrams_info {}                             → All diagrams: [{"id":"AAAAAAGh0g...=","type":"UMLStatechartDiagram","name":"Statechart Diagram by Mermaid","description":""}, ...]
+staruml_get_diagram_image_by_id {diagramId: "AAAAAAGh0g...="} → image payload
+```
+
+Diagram `type` values seen in a live project: `UMLClassDiagram`, `UMLStatechartDiagram`, `FCFlowchartDiagram`.
 
 No delete, no rename, no save, no element-CRUD tools exist. Anything outside these four = report to user.
 
@@ -129,7 +143,113 @@ Verified features: `subgraph` (swimlane groups), shapes `([stadium])` actions, `
 
 For "make N versions of each exercise" requests:
 
-1. Extract the source material first (PDFs via Python `pdfplumber`/`pymupdf` to PNG+text — PDFs are images, render pages to read diagrams).
+1. Extract the source material first (PDFs via the toolkit in §10.2 — text extraction + page rendering to PNG).
 2. Map each exercise to a diagram type (states → `stateDiagram-v2`, activity → `flowchart`, structure → `classDiagram`, interactions → `sequenceDiagram`).
 3. Version A = faithful-to-correction structure; Version B = genuinely different approach (choice/verification state, time events, composite regions, fork/join, no-swimlanes) — not cosmetic label changes.
 4. Generate sequentially, ASCII-only, escalating syntax complexity gradually, then verify all with images and report an ID table.
+
+## 10. Toolkit — everything used to ship real diagram batches
+
+### 10.1 MCP call shapes
+
+Send the Mermaid as a single `code` string with `\n` newlines. Do not pass `title`, `direction`, or metadata as separate params — the tool has exactly one param.
+
+```json
+{"code": "stateDiagram-v2\n    [*] --> Cree\n    Cree --> Disponible : non_unique"}
+```
+
+After a batch, list once and map by creation order. The list includes probe diagrams too — count them when mapping IDs.
+
+### 10.2 PDF → text + PNG pipeline (source extraction)
+
+The `Read` tool may report "PDF read successfully" but the model cannot actually parse PDF content. Extract first:
+
+```powershell
+$env:PYTHONIOENCODING='utf-8'
+python scripts/pdf_extract.py TP4-Enonc.pdf TP4-Correction.pdf --outdir .extract --dpi 150
+```
+
+`scripts/pdf_extract.py` in this repo does both halves:
+
+| Dependency | Used for | Notes |
+| --- | --- | --- |
+| `pdfplumber` | text extraction per page | best for exercise statements |
+| `pymupdf` (`fitz` / `import pymupdf`) | render pages → PNG | read correction diagrams visually |
+| `PyPDF2` | fallback text | available on most machines |
+
+Outputs: `<name>.txt` (UTF-8, page markers `=== PAGE N ===`) and `<name>_pN.png`. Then `Read` each PNG to see the correction diagrams.
+
+If the scripts folder is unavailable, the minimal inline version:
+
+```python
+import pymupdf
+doc = pymupdf.open("correction.pdf")
+for i, page in enumerate(doc):
+    page.get_pixmap(dpi=150).save(f"corr_p{i+1}.png")
+```
+
+### 10.3 Windows encoding guard (hard-won)
+
+The default Windows console is cp1252. Printing extracted PDF text (arrows `→`, accents) crashes with `UnicodeEncodeError` mid-pipeline. Guards, in order of preference:
+
+1. Set `$env:PYTHONIOENCODING='utf-8'` before Python.
+2. Write extracted text to a file with `encoding='utf-8'`, then `Read` the file — never print it.
+3. In scripts, `sys.stdout.reconfigure(encoding='utf-8', errors='replace')`.
+
+Do not trust console output for non-ASCII. File output is the source of truth.
+
+### 10.4 Image verification
+
+- Export each diagram with `staruml_get_diagram_image_by_id` and inspect the returned image directly.
+- Check structure: all states present, every transition, composite frames, swimlane grouping, fork/join bars.
+- Ignore cosmetic overlap: StarUML export renders nodes on top of each other until dragged in the GUI. Do not regenerate for overlap alone.
+- Never "fix" the `UNREGISTERED` watermark — license artifact.
+
+### 10.5 Batch tracking
+
+Use the todo tool with one item per diagram (`Ex1 vA`, `Ex1 vB`, …), each `high` priority. Mark `in_progress` immediately before generating, `completed` only after the image check. For 6+ diagrams this prevents ID/version drift.
+
+### 10.6 Environment bring-up (when tools are missing)
+
+| Step | Command / action |
+| --- | --- |
+| StarUML ≥ 7 | install from https://staruml.io |
+| Enable API server | `%APPDATA%\StarUML\settings.json` → `{"apiServer": true, "apiServerPort": 58321}`; restart StarUML |
+| Verify API | `curl http://localhost:58321/` → `Hello from StarUML API Server!` |
+| MCP server (HTTP) | `npx -y staruml-mcp --transport http` → `http://localhost:58323/mcp` |
+| MCP server (stdio) | `npx -y staruml-mcp` |
+| Full 19-tool set | install `staruml-mcp-extension` inside StarUML (`:58322`) |
+| Verify tool list | ask the host "What StarUML tools do you have?" |
+
+Ports: `58321` StarUML built-in API · `58322` extension · `58323` MCP HTTP listen.
+
+### 10.7 Publishing / CI toolkit (used to ship this repo)
+
+| Tool | Exact use | Gotcha |
+| --- | --- | --- |
+| `git` | `init -b main`, `add -A`, `commit` | LF→CRLF warnings on Windows are noise |
+| `gh` CLI | repo create/push, topics, issues, releases | may be absent; `winget` may also be absent |
+| Portable gh | download `gh_<ver>_windows_amd64.zip` from GitHub releases, `Expand-Archive` | binary is at `...\bin\gh.exe` — verify with `Get-ChildItem -Recurse -Filter gh.exe` |
+| GitHub device flow | POST `https://github.com/login/device/code`, poll `access_token` | codes expire (~15 min); re-request on `expired_token` |
+| `gh auth login --with-token` | pipe token from a temp file | delete the temp token file after use |
+| `gh repo create --source . --remote origin --push` | one-shot publish | needs the local folder to be a git repo |
+| REST API | topics, Discussions, secret scanning, releases | PowerShell 5.1 mangles inline JSON → write payload to a file and use `--input` |
+| Pillow (`PIL`) | demo GIF + 1280×640 social preview | `Image.seek()` past `n_frames-1` raises `EOFError` — clamp indices |
+| `scripts/validate.py` | 115+ structural/dialect checks | run before every commit; CI runs it on push |
+
+### 10.8 Manual GUI steps (no MCP equivalent)
+
+- Rename: Model Explorer → select diagram → `F2`.
+- Delete probe diagrams: right-click → Delete Diagram.
+- Save project: `Ctrl+S` (the MCP does not save).
+- Re-accent labels: double-click state/transition text in the diagram editor.
+
+## 11. Non-negotiables
+
+1. `stateDiagram-v2` (or another supported keyword) must be the **first line** of `code`.
+2. ASCII only for state names and transition labels.
+3. One colon per transition line; single-token labels.
+4. No `direction`, no `title`, no `---` frontmatter.
+5. Flat diagram before composites; one escalation level at a time.
+6. One failure → report the exact error and stop. Never retry-loop.
+7. Verify every deliverable visually before declaring success.

@@ -4,6 +4,36 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] — 2026-11-21
+
+### Added
+- `SKILL.md` §10 — **full toolkit** captured from the TP4 session:
+  - MCP call shapes with exact prefixed tool names (`staruml_generate_diagram`,
+    `staruml_get_all_diagrams_info`, `staruml_get_current_diagram_info`,
+    `staruml_get_diagram_image_by_id`), parameter names, and observed responses.
+  - PDF → text + PNG extraction pipeline (`pdfplumber` / `pymupdf` / `PyPDF2`,
+    150 dpi page rendering) with the `PYTHONIOENCODING=utf-8` Windows guard.
+  - Image-based verification loop, batch todo tracking, and ID mapping by
+    creation order.
+  - Environment bring-up table (StarUML API server `:58321`, `staruml-mcp`
+    `:58323`, extension `:58322`).
+  - Publishing / CI toolkit: git, portable `gh`, GitHub device flow, REST
+    payloads via file (PowerShell 5.1 quoting), Pillow assets, validator.
+  - Manual GUI-only steps (rename F2, delete probe diagrams, Ctrl+S, re-accent).
+- `SKILL.md` §11 — consolidated non-negotiables list.
+- `scripts/pdf_extract.py` — standalone extractor: UTF-8 text with page markers
+  plus one PNG per page; directory inputs; `--dpi`, `--text-only`,
+  `--images-only`; graceful dependency fallbacks.
+- `docs/MCP_LANGUAGE.md` — tool-surface table with exact observed responses
+  and diagram types.
+- README — toolkit quick-start block and the new script in "What's inside".
+
+### Changed
+- `SKILL.md` frontmatter description now covers the extraction toolkit and
+  the prefixed MCP tool names.
+- `scripts/validate.py` now requires `scripts/pdf_extract.py`, checks the
+  toolkit section/tool names in `SKILL.md`, and byte-compiles the script.
+
 ## [1.0.0] — 2026-11-13
 
 ### Added

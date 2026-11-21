@@ -38,13 +38,29 @@ This skill encodes all of it, plus a verification workflow (`generate → map ID
 
 | Path | Purpose |
 | ---- | ------- |
-| `SKILL.md` | The skill itself — 9 sections: tool contract, supported keywords, state-diagram hard rules, empirical parser findings, flowchart recipes, failure-safety protocol, verification workflow, housekeeping, multi-version task recipe |
+| `SKILL.md` | The skill itself — 11 sections: tool contract, supported keywords, state-diagram hard rules, empirical parser findings, flowchart recipes, failure-safety protocol, verification workflow, housekeeping, multi-version task recipe, **full toolkit** (PDF pipeline, encoding guards, environment bring-up, publishing stack), non-negotiables |
 | [`docs/MANUAL_SETUP.md`](docs/MANUAL_SETUP.md) | Full user setup: StarUML API server, `staruml-mcp` npm server, per-client registration (opencode / Claude Code / Claude Desktop / Cursor / VS Code), the 19-tool extension |
 | [`docs/AGENT_SETUP.md`](docs/AGENT_SETUP.md) | Instructions written *for AI agents* to self-install the skill and verify it |
 | [`docs/MCP_LANGUAGE.md`](docs/MCP_LANGUAGE.md) | The complete StarUML Mermaid dialect reference with copy-paste examples and a failure table |
 | [`examples/`](examples/) | Ready-to-generate diagrams: flat state machine, concurrent composite regions, activity swimlanes, fork/join, class diagram |
-| [`scripts/validate.py`](scripts/validate.py) | Repo validator (runs in CI): frontmatter, ASCII rules, one-colon rule, structural files |
+| [`scripts/pdf_extract.py`](scripts/pdf_extract.py) | PDF → UTF-8 text + page PNGs at 150 dpi (pdfplumber / pymupdf / PyPDF2) — the extraction step used before diagramming |
+| [`scripts/validate.py`](scripts/validate.py) | Repo validator (runs in CI): frontmatter, ASCII rules, one-colon rule, structural files, toolkit presence |
 | `install.sh` / `install.ps1` | One-command installers |
+
+## Toolkit (what the agent actually uses)
+
+```bash
+# 1. extract the exercise statement + correction diagrams from a PDF
+python scripts/pdf_extract.py TP4-Enonc.pdf TP4-Correction.pdf --dpi 150
+
+# 2. generate + verify in StarUML (MCP tools, prefixed by the host)
+#    staruml_generate_diagram {code} -> staruml_get_all_diagrams_info {}
+#    -> staruml_get_diagram_image_by_id {diagramId}
+
+# 3. batch hygiene: one todo per diagram, IDs mapped by creation order
+```
+
+`SKILL.md` §10 documents the whole stack: MCP call shapes and exact responses, the PDF text/PNG pipeline, the Windows `PYTHONIOENCODING=utf-8` guard, image-based verification, environment bring-up (ports 58321/58322/58323), and the git + `gh` publishing toolchain (portable install, device flow, REST payloads via file).
 
 ## Quick start (30 seconds)
 
@@ -73,7 +89,7 @@ Your agent will answer *"What StarUML tools do you have?"* with the 4 built-in t
 | ----- | ----- |
 | CI (validator) | [![CI](https://github.com/GUURUUU/start-UMl-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/GUURUUU/start-UMl-skill/actions/workflows/ci.yml) |
 | License | MIT |
-| Release | v1.0.0 |
+| Release | v1.1.0 |
 
 ## Contributing
 
